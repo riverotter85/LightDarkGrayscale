@@ -1,9 +1,15 @@
 # CUDAatScaleForTheEnterpriseCourseProjectTemplate
-This is a template for the course project for the CUDA at Scale for the Enterprise
+A simple CUDA program that reads in an image file, producing a brightened, darkened, and grayscale file as output.
 
 ## Project Description
 
-Beyond just being a template for course members, this project can be used by non-course members as the general structure for CUDA projects.
+The purpose of this program is to read the image file passed in, then convert it into three separate files.
+These are:
+- Light: The image is brightened by a percentage the user specifies
+- Dark: The image is darkened by a percentage the user specifies
+- Grayscale: A grayscale version of the original image
+
+Each of these processes are run in separate CUDA threads, then synced up at the end of the program before exiting with a SUCCESS. If a problem occurs when reading the input file, then the program exits with a FAILURE.
 
 ## Code Organization
 
