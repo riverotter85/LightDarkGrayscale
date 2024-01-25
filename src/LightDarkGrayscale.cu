@@ -3,9 +3,12 @@
 #include <string>
 #include <filesystem>
 #include <list>
+#include <exception>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
+
+#include "CudaImage.hpp"
 
 using namespace std;
 
@@ -66,7 +69,7 @@ __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercent
     }
 
     // Grayscale kernel
-    bright<<<grid, block>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_grayscale);
+    grayscale<<<grid, block>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_grayscale);
     err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "Failed to launch grayscale kernel: %s\n", cudaGetErrorString(err));
