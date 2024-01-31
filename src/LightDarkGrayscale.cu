@@ -13,38 +13,6 @@
 
 using namespace std;
 
-// __global__ void bright(uchar *d_r, uchar *d_g, uchar *d_b, int percentage, uchar *d_bright) {
-//     int blockId = blockIdx.x + blockIdx.y * gridDim.x
-//                     + gridDim.x * gridDim.y * blockIdx.z;
-//     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-//                             + (threadIdx.z * (blockDim.x * blockDim.y))
-//                             + (threadIdx.y * blockDim.x) + threadIdx.x;
-    
-//     float modifier = 1 + percentage * 0.01;
-//     d_bright[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) * modifier;
-// }
-
-// __global__ void dark(uchar *d_r, uchar *d_g, uchar *d_b, int percentage, uchar *d_dark) {
-//     int blockId = blockIdx.x + blockIdx.y * gridDim.x
-//                     + gridDim.x * gridDim.y * blockIdx.z;
-//     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-//                             + (threadIdx.z * (blockDim.x * blockDim.y))
-//                             + (threadIdx.y * blockDim.x) + threadIdx.x;
-    
-//     float modifier = 1 - percentage * 0.01;
-//     d_dark[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) * modifier;
-// }
-
-// __global__ void grayscale(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_grayscale) {
-//     int blockId = blockIdx.x + blockIdx.y * gridDim.x
-//                     + gridDim.x * gridDim.y * blockIdx.z;
-//     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-//                             + (threadIdx.z * (blockDim.x * blockDim.y))
-//                             + (threadIdx.y * blockDim.x) + threadIdx.x;
-    
-//     d_grayscale[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) / 3;
-// }
-
 __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright, uchar *d_dark, uchar *d_grayscale, int brightPercentage, int darkPercentage) {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
                     + gridDim.x * gridDim.y * blockIdx.z;
@@ -101,7 +69,7 @@ __host__ int main(int argc, char **argv) {
     vector<CudaImage *> cudaImages;
 
     // Get a list of filenames
-    string filepath = "./data/input";
+    string filepath = "./data";
     for (const auto &entry : filesystem::directory_iterator(filepath)) {
         filepaths.push_back(entry.path());
     }
