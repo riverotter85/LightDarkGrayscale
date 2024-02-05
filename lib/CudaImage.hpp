@@ -5,8 +5,6 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-#include <cxxabi.h> # NOTE: Remove!!
-
 using namespace cv;
 using namespace std;
 
@@ -43,8 +41,6 @@ __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inp
     uchar *h_g = (uchar *) malloc(sizeof(uchar) * rows * cols);
     uchar *h_b = (uchar *) malloc(sizeof(uchar) * rows * cols);
 
-    cout << "Before Hello\n";
-
     for (int row = 0; row < rows; row++) {
         for (int col = 0; col < cols; col++) {
             Vec3b intensity = image.at<Vec3b>(row, col);
@@ -57,8 +53,6 @@ __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inp
             h_b[row * cols + col] = b;
         }
     }
-
-    cout << "Hello\n";
 
     return {rows, cols, h_r, h_g, h_b};
 }
@@ -104,14 +98,6 @@ __host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_brig
     deallocateDeviceVector(d_grayscale);
 }
 
-__host__ void cleanUpDevice() {
-    cudaError_t err = cudaDeviceReset();
-    if (err != cudaSuccess) {
-        fprintf(stderr, "Failed to reset the device state: %s\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-}
-
 __host__ void copyHostDevice(uchar *src, uchar *dst, size_t size) {
     cudaError_t err = cudaMemcpy(dst, src, size, cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
@@ -121,11 +107,6 @@ __host__ void copyHostDevice(uchar *src, uchar *dst, size_t size) {
 }
 
 __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
-    cout << "Hello!\n";
-    cout << "Src Type: " << abi::__cxa_demangle(typeid(src).name(), 0, 0, 0) << "\n";
-    cout << "Dst Type: " << abi::__cxa_demangle(typeid(dst).name(), 0, 0, 0) << "\n";
-    cout << "Size Type: " << abi::__cxa_demangle(typeid(size).name(), 0, 0, 0) << "\n";
-    cout << "Copy Type: " << abi::__cxa_demangle(typeid(cudaMemcpyDeviceToHost).name(), 0, 0, 0) << "\n";
     cudaError_t err = cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
         fprintf(stderr, "Failed to copy from device to host: %s\n", cudaGetErrorString(err));
@@ -189,14 +170,17 @@ __host__ CudaImage *createCudaImage(string inputImage) {
     return cudaImage;
 }
 
-__host__ void toString(CudaImage *cudaImage) {
-    
-}
-
 __host__ void destroyCudaImage(CudaImage *cudaImage) {
     deallocateMemory(cudaImage->d_r, cudaImage->d_g, cudaImage->d_b,
                     cudaImage->d_bright, cudaImage->d_dark, cudaImage->d_grayscale);
-    cleanUpDevice();
+}
+
+__host__ void cleanUpDevice() {
+    cudaError_t err = cudaDeviceReset();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to reset the device state: %s\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
 }
 
 __host__ void copyFromHostToDevice(CudaImage *cudaImage) {
@@ -210,12 +194,6 @@ __host__ void copyFromHostToDevice(CudaImage *cudaImage) {
 __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
     size_t size = cudaImage->rows * cudaImage->cols * sizeof(uchar);
 
-    printf("D: %p\n", cudaImage->d_r);
-    printf("D: %p\n", cudaImage->d_g);
-    printf("D: %p\n", cudaImage->d_b);
-    printf("H: %p\n", cudaImage->h_r);
-    printf("H: %p\n", cudaImage->h_g);
-    printf("H: %p\n", cudaImage->h_b);
     copyDeviceHost(cudaImage->d_r, cudaImage->h_r, size);
     copyDeviceHost(cudaImage->d_g, cudaImage->h_g, size);
     copyDeviceHost(cudaImage->d_b, cudaImage->h_b, size);
