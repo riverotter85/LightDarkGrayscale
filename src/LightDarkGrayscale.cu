@@ -12,7 +12,9 @@
 
 using namespace std;
 
-__global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright, uchar *d_dark, uchar *d_grayscale, int brightPercentage, int darkPercentage, int size) {
+__global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright_r, uchar *d_bright_g, uchar *d_bright_b,
+                                        uchar *d_dark_r, uchar *d_dark_g, uchar *d_dark_b, uchar *d_grayscale, int brightPercentage,
+                                        int darkPercentage, int size) {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
                     + gridDim.x * gridDim.y * blockIdx.z;
     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -22,11 +24,15 @@ __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, ucha
     if (threadId < size) {
         // Bright
         float modifier = 1 + brightPercentage * 0.01;
-        d_bright[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) * modifier;
+        d_bright_r[threadId] = d_r[threadId] * modifier;
+        d_bright_g[threadId] = d_g[threadId] * modifier;
+        d_bright_b[threadId] = d_b[threadId] * modifier;
 
         // Dark
         modifier = 1 - darkPercentage * 0.01;
-        d_dark[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) * modifier;
+        d_dark_r[threadId] = d_r[threadId] * modifier;
+        d_dark_g[threadId] = d_g[threadId] * modifier;
+        d_dark_b[threadId] = d_b[threadId] * modifier;
 
         // Grayscale
         d_grayscale[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) / 3;
@@ -35,12 +41,20 @@ __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, ucha
     // __syncthreads();
 }
 
-__host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercentage, dim3 threadsPerBlock, dim3 blocksPerGrid) {
+__host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercentage) {
     cout << "Running kernel...\n";
+
+    const int blockZSize = 4;
+    const int threadsPerBlock = 32;
+    const int gridCols = min(ci->cols / (threadsPerBlock * 4), 1);
+
+    dim3 grid(threadsPerBlock, gridCols, 1);
+    dim3 block(1, threadsPerBlock, blockZSize);
 
     // Kernel code
     int size = ci->rows * ci->cols;
-    applyLightDarkGrayscale<<<blocksPerGrid, threadsPerBlock>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_bright, ci->d_dark, ci->d_grayscale, brightPercentage, darkPercentage, size);
+    applyLightDarkGrayscale<<<grid, block>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_bright_r, ci->d_bright_g, ci->d_bright_b,
+                                            ci->d_dark_r, ci->d_dark_g, ci->d_dark_b, ci->d_grayscale, brightPercentage, darkPercentage, size);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "Failed to launch bright kernel: %s\n", cudaGetErrorString(err));
@@ -61,18 +75,6 @@ __host__ int promptInputPercentage(string prompt) {
 }
 
 __host__ int main(int argc, char **argv) {
-    // const int threadsPerBlock = 8;
-    dim3 threadsPerBlock;
-    dim3 blocksPerGrid;
-
-    threadsPerBlock.x = 32;
-    threadsPerBlock.y = 1;
-    threadsPerBlock.z = 1;
-
-    blocksPerGrid.x = 8;
-    blocksPerGrid.y = 1;
-    blocksPerGrid.z = 1;
-
     vector<string> filepaths;
     vector<CudaImage *> cudaImages;
 
@@ -99,24 +101,33 @@ __host__ int main(int argc, char **argv) {
             copyFromHostToDevice(ci);
 
             // Execute kernel
-            executeKernel(ci, brightPercentage, darkPercentage, threadsPerBlock, blocksPerGrid);
+            // executeKernel(ci, brightPercentage, darkPercentage);
 
             cudaImages.push_back(ci);
         }
 
         cudaDeviceSynchronize();
 
+        cout << "Hello #1\n";
+
         // Now that our data operations are finished, commence with mapping to output files
         for (int i = 0; i < cudaImages.size(); ++i) {
+            cout << "Hello #2\n";
             copyFromDeviceToHost(cudaImages[i]);
 
+            cout << "Hello #3\n";
             string filename = filepaths[i].substr(filepaths[i].find_last_of("/\\") + 1);
+            cout << "Hello #3\n";
             mapBrightImage(cudaImages[i], "./data/output/bright/bright_" + filename);
+            cout << "Hello #3\n";
             mapDarkImage(cudaImages[i], "./data/output/dark/dark_" + filename);
+            cout << "Hello #3\n";
             mapGrayscaleImage(cudaImages[i], "./data/output/grayscale/grayscale_" + filename);
 
+            cout << "Hello #4\n";
             destroyCudaImage(cudaImages[i]);
         }
+        cout << "Hello #5\n";
         cleanUpDevice();
 
     } catch (Exception &e) {

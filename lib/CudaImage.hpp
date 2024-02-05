@@ -9,20 +9,40 @@ using namespace cv;
 using namespace std;
 
 struct CudaImage {
+    // Host pixels
     uchar *h_r;
     uchar *h_g;
     uchar *h_b;
 
-    uchar *h_bright;
-    uchar *h_dark;
+    // Host bright pixels
+    uchar *h_bright_r;
+    uchar *h_bright_g;
+    uchar *h_bright_b;
+
+    // Host dark pixels
+    uchar *h_dark_r;
+    uchar *h_dark_g;
+    uchar *h_dark_b;
+
+    // Host grayscale pixels
     uchar *h_grayscale;
 
+    // Device pixels
     uchar *d_r;
     uchar *d_g;
     uchar *d_b;
 
-    uchar *d_bright;
-    uchar *d_dark;
+    // Device bright pixels
+    uchar *d_bright_r;
+    uchar *d_bright_g;
+    uchar *d_bright_b;
+
+    // Device dark pixels
+    uchar *d_dark_r;
+    uchar *d_dark_g;
+    uchar *d_dark_b;
+
+    // Device grayscale pixels
     uchar *d_grayscale;
 
     int rows;
@@ -44,9 +64,9 @@ __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inp
     for (int row = 0; row < rows; row++) {
         for (int col = 0; col < cols; col++) {
             Vec3b intensity = image.at<Vec3b>(row, col);
-            uchar b = intensity.val[0];
+            uchar r = intensity.val[0];
             uchar g = intensity.val[1];
-            uchar r = intensity.val[2];
+            uchar b = intensity.val[2];
 
             h_r[row * cols + col] = r;
             h_g[row * cols + col] = g;
@@ -76,25 +96,39 @@ __host__ void deallocateDeviceVector(uchar *vector) {
     }
 }
 
-__host__ tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> allocateDeviceMemory(int rows, int cols) {
+__host__ tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> allocateDeviceMemory(int rows, int cols) {
     size_t size = rows * cols * sizeof(uchar);
 
     uchar *d_r         = allocateDeviceVector(size);
     uchar *d_g         = allocateDeviceVector(size);
     uchar *d_b         = allocateDeviceVector(size);
-    uchar *d_bright    = allocateDeviceVector(size);
-    uchar *d_dark      = allocateDeviceVector(size);
+
+    uchar *d_bright_r  = allocateDeviceVector(size);
+    uchar *d_bright_g  = allocateDeviceVector(size);
+    uchar *d_bright_b  = allocateDeviceVector(size);
+
+    uchar *d_dark_r    = allocateDeviceVector(size);
+    uchar *d_dark_g    = allocateDeviceVector(size);
+    uchar *d_dark_b    = allocateDeviceVector(size);
+
     uchar *d_grayscale = allocateDeviceVector(size);
 
-    return {d_r, d_g, d_b, d_bright, d_dark, d_grayscale};
+    return {d_r, d_g, d_b, d_bright_r, d_bright_g, d_bright_b, d_dark_r, d_dark_g, d_dark_b, d_grayscale};
 }
 
-__host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright, uchar *d_dark, uchar *d_grayscale) {
+__host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright_r, uchar *d_bright_g, uchar *d_bright_b, uchar *d_dark_r, uchar *d_dark_g, uchar *d_dark_b, uchar *d_grayscale) {
     deallocateDeviceVector(d_r);
     deallocateDeviceVector(d_g);
     deallocateDeviceVector(d_b);
-    deallocateDeviceVector(d_bright);
-    deallocateDeviceVector(d_dark);
+
+    deallocateDeviceVector(d_bright_r);
+    deallocateDeviceVector(d_bright_g);
+    deallocateDeviceVector(d_bright_b);
+
+    deallocateDeviceVector(d_dark_r);
+    deallocateDeviceVector(d_dark_g);
+    deallocateDeviceVector(d_dark_b);
+
     deallocateDeviceVector(d_grayscale);
 }
 
@@ -114,7 +148,7 @@ __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
     }
 }
 
-__host__ void mapImage(uchar *filter, int rows, int cols, string outputFile) {
+__host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int rows, int cols, string outputFile) {
     Mat imageMat(rows, cols, CV_8UC1);
     vector<int> compressionParams;
     compressionParams.push_back(IMWRITE_PNG_COMPRESSION);
@@ -122,28 +156,47 @@ __host__ void mapImage(uchar *filter, int rows, int cols, string outputFile) {
 
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < cols; ++col) {
-            imageMat.at<uchar>(row, col) = filter[row * rows + cols];
+            int index = row * cols + col;
+            // printf("R: %c\n", filter_r[index]);
+            // printf("G: %c\n", filter_g[index]);
+            // printf("B: %c\n", filter_b[index]);
+            imageMat.at<Vec3b>(row, col)[0] = filter_r[index];
+            imageMat.at<Vec3b>(row, col)[1] = filter_g[index];
+            imageMat.at<Vec3b>(row, col)[2] = filter_b[index];
         }
     }
+    cout << "Out of loop\n";
 
     imwrite(outputFile, imageMat, compressionParams);
+    cout << "Out of loop\n";
 }
 
 // Main controls
 
 __host__ CudaImage *createCudaImage(string inputImage) {
     auto[rows, cols, h_r, h_g, h_b] = readImageFromFile(inputImage);
-    uchar *h_bright    = (uchar *) malloc(sizeof(uchar) * rows * cols);
-    uchar *h_dark      = (uchar *) malloc(sizeof(uchar) * rows * cols);
+
+    uchar *h_bright_r  = (uchar *) malloc(sizeof(uchar) * rows * cols);
+    uchar *h_bright_g  = (uchar *) malloc(sizeof(uchar) * rows * cols);
+    uchar *h_bright_b  = (uchar *) malloc(sizeof(uchar) * rows * cols);
+
+    uchar *h_dark_r    = (uchar *) malloc(sizeof(uchar) * rows * cols);
+    uchar *h_dark_g    = (uchar *) malloc(sizeof(uchar) * rows * cols);
+    uchar *h_dark_b    = (uchar *) malloc(sizeof(uchar) * rows * cols);
+
     uchar *h_grayscale = (uchar *) malloc(sizeof(uchar) * rows * cols);
 
-    tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> deviceTuple = allocateDeviceMemory(rows, cols);
+    tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> deviceTuple = allocateDeviceMemory(rows, cols);
     uchar *d_r         = get<0>(deviceTuple);
     uchar *d_g         = get<1>(deviceTuple);
     uchar *d_b         = get<2>(deviceTuple);
-    uchar *d_bright    = get<3>(deviceTuple);
-    uchar *d_dark      = get<4>(deviceTuple);
-    uchar *d_grayscale = get<5>(deviceTuple);
+    uchar *d_bright_r  = get<3>(deviceTuple);
+    uchar *d_bright_g  = get<4>(deviceTuple);
+    uchar *d_bright_b  = get<5>(deviceTuple);
+    uchar *d_dark_r    = get<6>(deviceTuple);
+    uchar *d_dark_g    = get<7>(deviceTuple);
+    uchar *d_dark_b    = get<8>(deviceTuple);
+    uchar *d_grayscale = get<9>(deviceTuple);
 
     // Set properties in new CudaImage project
     CudaImage *cudaImage = (CudaImage *) malloc(sizeof(CudaImage));
@@ -152,16 +205,28 @@ __host__ CudaImage *createCudaImage(string inputImage) {
     cudaImage->h_g = h_g;
     cudaImage->h_b = h_b;
 
-    cudaImage->h_bright    = h_bright;
-    cudaImage->h_dark      = h_dark;
+    cudaImage->h_bright_r  = h_bright_r;
+    cudaImage->h_bright_g  = h_bright_g;
+    cudaImage->h_bright_b  = h_bright_b;
+
+    cudaImage->h_dark_r    = h_dark_r;
+    cudaImage->h_dark_g    = h_dark_g;
+    cudaImage->h_dark_b    = h_dark_b;
+
     cudaImage->h_grayscale = h_grayscale;
 
     cudaImage->d_r = d_r;
     cudaImage->d_g = d_g;
     cudaImage->d_b = d_b;
 
-    cudaImage->d_bright    = d_bright;
-    cudaImage->d_dark      = d_dark;
+    cudaImage->d_bright_r  = d_bright_r;
+    cudaImage->d_bright_g  = d_bright_g;
+    cudaImage->d_bright_b  = d_bright_b;
+
+    cudaImage->d_dark_r    = d_dark_r;
+    cudaImage->d_dark_g    = d_dark_g;
+    cudaImage->d_dark_b    = d_dark_b;
+
     cudaImage->d_grayscale = d_grayscale;
 
     cudaImage->rows = rows;
@@ -172,7 +237,8 @@ __host__ CudaImage *createCudaImage(string inputImage) {
 
 __host__ void destroyCudaImage(CudaImage *cudaImage) {
     deallocateMemory(cudaImage->d_r, cudaImage->d_g, cudaImage->d_b,
-                    cudaImage->d_bright, cudaImage->d_dark, cudaImage->d_grayscale);
+                    cudaImage->d_bright_r, cudaImage->d_bright_g, cudaImage->d_bright_b,
+                    cudaImage->d_dark_r, cudaImage->d_dark_g, cudaImage->d_dark_b, cudaImage->d_grayscale);
 }
 
 __host__ void cleanUpDevice() {
@@ -189,6 +255,16 @@ __host__ void copyFromHostToDevice(CudaImage *cudaImage) {
     copyHostDevice(cudaImage->h_r, cudaImage->d_r, size);
     copyHostDevice(cudaImage->h_g, cudaImage->d_g, size);
     copyHostDevice(cudaImage->h_b, cudaImage->d_b, size);
+
+    copyHostDevice(cudaImage->h_bright_r, cudaImage->d_bright_r, size);
+    copyHostDevice(cudaImage->h_bright_g, cudaImage->d_bright_g, size);
+    copyHostDevice(cudaImage->h_bright_b, cudaImage->d_bright_b, size);
+
+    copyHostDevice(cudaImage->h_dark_r, cudaImage->d_dark_r, size);
+    copyHostDevice(cudaImage->h_dark_g, cudaImage->d_dark_g, size);
+    copyHostDevice(cudaImage->h_dark_b, cudaImage->d_dark_b, size);
+
+    copyHostDevice(cudaImage->h_grayscale, cudaImage->d_grayscale, size);
 }
 
 __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
@@ -197,18 +273,28 @@ __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
     copyDeviceHost(cudaImage->d_r, cudaImage->h_r, size);
     copyDeviceHost(cudaImage->d_g, cudaImage->h_g, size);
     copyDeviceHost(cudaImage->d_b, cudaImage->h_b, size);
+
+    copyDeviceHost(cudaImage->d_bright_r, cudaImage->h_bright_r, size);
+    copyDeviceHost(cudaImage->d_bright_g, cudaImage->h_bright_g, size);
+    copyDeviceHost(cudaImage->d_bright_b, cudaImage->h_bright_b, size);
+
+    copyDeviceHost(cudaImage->d_dark_r, cudaImage->h_dark_r, size);
+    copyDeviceHost(cudaImage->d_dark_g, cudaImage->h_dark_g, size);
+    copyDeviceHost(cudaImage->d_dark_b, cudaImage->h_dark_b, size);
+
+    copyDeviceHost(cudaImage->d_grayscale, cudaImage->h_grayscale, size);
 }
 
 __host__ void mapBrightImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_bright, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_bright_r, cudaImage->h_bright_g, cudaImage->h_bright_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapDarkImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_dark, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_dark_r, cudaImage->h_dark_g, cudaImage->h_dark_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapGrayscaleImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_grayscale, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 #endif
