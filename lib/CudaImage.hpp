@@ -64,9 +64,9 @@ __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inp
     for (int row = 0; row < rows; row++) {
         for (int col = 0; col < cols; col++) {
             Vec3b intensity = image.at<Vec3b>(row, col);
-            uchar r = intensity.val[0];
+            uchar b = intensity.val[0];
             uchar g = intensity.val[1];
-            uchar b = intensity.val[2];
+            uchar r = intensity.val[2];
 
             h_r[row * cols + col] = r;
             h_g[row * cols + col] = g;
@@ -149,7 +149,7 @@ __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
 }
 
 __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int rows, int cols, string outputFile) {
-    Mat imageMat(rows, cols, CV_8UC1);
+    Mat imageMat(rows, cols, CV_8UC3);
     vector<int> compressionParams;
     compressionParams.push_back(IMWRITE_PNG_COMPRESSION);
     compressionParams.push_back(9);
@@ -157,12 +157,11 @@ __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int ro
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < cols; ++col) {
             int index = row * cols + col;
-            // printf("R: %c\n", filter_r[index]);
-            // printf("G: %c\n", filter_g[index]);
-            // printf("B: %c\n", filter_b[index]);
-            imageMat.at<Vec3b>(row, col)[0] = filter_r[index];
-            imageMat.at<Vec3b>(row, col)[1] = filter_g[index];
-            imageMat.at<Vec3b>(row, col)[2] = filter_b[index];
+            Vec3b color = imageMat.at<Vec3b>(Point(col, row));
+            color.val[0] = filter_b[index];
+            color.val[1] = filter_g[index];
+            color.val[2] = filter_r[index];
+            imageMat.at<Vec3b>(Point(col, row)) = color;
         }
     }
     cout << "Out of loop\n";
@@ -286,15 +285,15 @@ __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
 }
 
 __host__ void mapBrightImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_bright_r, cudaImage->h_bright_g, cudaImage->h_bright_b, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapDarkImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_dark_r, cudaImage->h_dark_g, cudaImage->h_dark_b, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapGrayscaleImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 #endif

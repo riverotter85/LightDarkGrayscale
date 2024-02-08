@@ -53,8 +53,8 @@ __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercent
 
     // Kernel code
     int size = ci->rows * ci->cols;
-    applyLightDarkGrayscale<<<grid, block>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_bright_r, ci->d_bright_g, ci->d_bright_b,
-                                            ci->d_dark_r, ci->d_dark_g, ci->d_dark_b, ci->d_grayscale, brightPercentage, darkPercentage, size);
+    // applyLightDarkGrayscale<<<grid, block>>>(ci->d_r, ci->d_g, ci->d_b, ci->d_bright_r, ci->d_bright_g, ci->d_bright_b,
+    //                                         ci->d_dark_r, ci->d_dark_g, ci->d_dark_b, ci->d_grayscale, brightPercentage, darkPercentage, size);
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
         fprintf(stderr, "Failed to launch bright kernel: %s\n", cudaGetErrorString(err));
