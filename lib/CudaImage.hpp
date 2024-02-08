@@ -1,6 +1,8 @@
 #ifndef CUDA_IMAGE
 #define CUDA_IMAGE
 
+#include <limits>
+
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -185,6 +187,18 @@ __host__ CudaImage *createCudaImage(string inputImage) {
 
     uchar *h_grayscale = (uchar *) malloc(sizeof(uchar) * rows * cols);
 
+    for (int i = 0; i < rows * cols; ++i) {
+        h_bright_r[i] = numeric_limits<uchar>::quiet_NaN();
+        h_bright_g[i] = numeric_limits<uchar>::quiet_NaN();
+        h_bright_b[i] = numeric_limits<uchar>::quiet_NaN();
+
+        h_dark_r[i] = numeric_limits<uchar>::quiet_NaN();
+        h_dark_g[i] = numeric_limits<uchar>::quiet_NaN();
+        h_dark_b[i] = numeric_limits<uchar>::quiet_NaN();
+
+        h_grayscale[i] = numeric_limits<uchar>::quiet_NaN();
+    }
+
     tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> deviceTuple = allocateDeviceMemory(rows, cols);
     uchar *d_r         = get<0>(deviceTuple);
     uchar *d_g         = get<1>(deviceTuple);
@@ -285,15 +299,15 @@ __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
 }
 
 __host__ void mapBrightImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_bright_r, cudaImage->h_bright_g, cudaImage->h_bright_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapDarkImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_dark_r, cudaImage->h_dark_g, cudaImage->h_dark_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 __host__ void mapGrayscaleImage(CudaImage *cudaImage, string outputFile) {
-    mapImage(cudaImage->h_r, cudaImage->h_g, cudaImage->h_b, cudaImage->rows, cudaImage->cols, outputFile);
+    mapImage(cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
 #endif
