@@ -1,38 +1,29 @@
-# CUDAatScaleForTheEnterpriseCourseProjectTemplate
+# LightDarkGrayscale
 A simple CUDA program that reads in an image file, producing a brightened, darkened, and grayscale file as output.
 
 ## Project Description
 
-The purpose of this program is to read the image file passed in, then convert it into three separate files.
-These are:
-- Light: The image is brightened by a percentage the user specifies
-- Dark: The image is darkened by a percentage the user specifies
-- Grayscale: A grayscale version of the original image
+The purpose of this program is to read in a set of image files passed through the data/ folder. The user is then prompted to specify the percentages for each image to be brightened and darkened, along with a grayscale conversion being done automatically afterward. These are placed into three separate folders as output.
 
-Each of these processes are run in separate CUDA threads, then synced up at the end of the program before exiting with a SUCCESS. If a problem occurs when reading the input file, then the program exits with a FAILURE.
+The files are:
+- bright_<filename>: The image is brightened by a percentage the user specifies
+- dark_<filename>: The image is darkened by a percentage the user specifies
+- grayscale_<filename>: A grayscale version of the original image
 
-## Code Organization
+These processes are done in CUDA kernels in order to help performance, then synced up at the end of the program before exiting. If a problem occurs when reading the input file, the program exits with a FAILURE.
 
-```bin/```
-This folder should hold all binary/executable code that is built automatically or manually. Executable code should have use the .exe extension or programming language-specific extension.
+## Building The Code
 
-```data/```
-This folder should hold all example data in any format. If the original data is rather large or can be brought in via scripts, this can be left blank in the respository, so that it doesn't require major downloads when all that is desired is the code/structure.
+LightDarkGrayscale requires the latest version of CUDA_Toolkit that's compatible with your GPU. Additionally, you will need to have OpenCV installed.
 
-```lib/```
-Any libraries that are not installed via the Operating System-specific package manager should be placed here, so that it is easier for inclusion/linking.
+There are two primary ways that you can install these: either through a baseline Linux distro or Visual Studio for Windows. My personal recommendation is to go with Linux, as the setup procedure is far more streamlined for a developer environment.
 
-```src/```
-The source code should be placed here in a hierarchical fashion, as appropriate.
+NOTE: You MUST use a Linux installation that can speak directly with your computer's GPU. This means that virtualized environments like VmWare and VirtualBox will not work for LightDarkGrayscale T_T
 
-```README.md```
-This file should hold the description of the project so that anyone cloning or deciding if they want to clone this repository can understand its purpose to help with their decision.
+## How To Run
 
-```INSTALL```
-This file should hold the human-readable set of instructions for installing the code so that it can be executed. If possible it should be organized around different operating systems, so that it can be done by as many people as possible with different constraints.
+## Light
 
-```Makefile or CMAkeLists.txt or build.sh```
-There should be some rudimentary scripts for building your project's code in an automatic fashion.
+## Dark
 
-```run.sh```
-An optional script used to run your executable code, either with or without command-line arguments.
+## Grayscale

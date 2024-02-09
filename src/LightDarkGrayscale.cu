@@ -76,6 +76,34 @@ __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercent
     cout << "Done.\n";
 }
 
+__host__ tuple<int, int> parseCliArguments(int argc, char **argv) {
+    int brightPercentage = -1;
+    int darkPercentage = -1;
+
+    for (int i = 1; i+1 < argc; i+=2) {
+        string mode = argv[i];
+        if (mode.compare("-b") == 0 || mode.compare("--bright") == 0) {
+            int temp = atoi(argv[i+1]);
+            if (temp >= 0 && temp <= 100) {
+                cout << "Setting bright percentage: " << temp << "%\n";
+                brightPercentage = temp;
+            } else {
+                cout << "Error: Failed to read bright percentage.\n";
+            }
+        } else if (mode.compare("-d") == 0 || mode.compare("--dark") == 0) {
+            int temp = atoi(argv[i+1]);
+            if (temp >= 0 && temp <= 100) {
+                cout << "Setting dark percentage: " << temp << "%\n";
+                darkPercentage = temp;
+            } else {
+                cout << "Error: Failed to read dark percentage.\n";
+            }
+        }
+    }
+
+    return {brightPercentage, darkPercentage};
+}
+
 __host__ int promptInputPercentage(string prompt) {
     int response;
     do {
@@ -100,15 +128,27 @@ __host__ int main(int argc, char **argv) {
     }
 
     try {
-        // Prompt user for percentage to brighten images
-        int brightPercentage = promptInputPercentage("Enter percentage to brighten first image");
+        // Parse arguments, if any
+        tuple<int, int> args = parseCliArguments(argc, argv);
+        int brightPercentage = get<0>(args);
+        int darkPercentage = get<1>(args);
 
-        // Prompt user for percentage to darken images
-        int darkPercentage = promptInputPercentage("Enter percentage to darken second image");
+        // Prompt user for percentage to brighten images (assuming no argument was passed)
+        if (brightPercentage == -1) {
+            brightPercentage = promptInputPercentage("Enter percentage to brighten first image");
+            cout << "Setting bright percentage: " << brightPercentage << "%\n";
+        }
+
+        // Prompt user for percentage to darken images (assuming no argument was passed)
+        if (darkPercentage == -1) {
+            darkPercentage = promptInputPercentage("Enter percentage to darken second image");
+            cout << "Setting bright percentage: " << darkPercentage << "%\n";
+        }
 
         // Iterate through each file
         CudaImage *ci = NULL;
         for (string path : filepaths) {
+            cout << "Processing file: " << path << "\n";
             ci = createCudaImage(path);
             copyFromHostToDevice(ci);
 
