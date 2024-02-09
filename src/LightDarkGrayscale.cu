@@ -37,34 +37,29 @@ __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, ucha
                             + (threadIdx.z * (blockDim.x * blockDim.y))
                             + (threadIdx.y * blockDim.x) + threadIdx.x;
     
-    // if (threadId < size) {
-    // Bright
-    d_bright_r[threadId] = brightenColor(d_r[threadId], brightPercentage);
-    d_bright_g[threadId] = brightenColor(d_g[threadId], brightPercentage);
-    d_bright_b[threadId] = brightenColor(d_b[threadId], brightPercentage);
+    if (threadId < size) {
+        // Bright
+        d_bright_r[threadId] = brightenColor(d_r[threadId], brightPercentage);
+        d_bright_g[threadId] = brightenColor(d_g[threadId], brightPercentage);
+        d_bright_b[threadId] = brightenColor(d_b[threadId], brightPercentage);
 
-    // Dark
-    d_dark_r[threadId] = darkenColor(d_r[threadId], darkPercentage);
-    d_dark_g[threadId] = darkenColor(d_g[threadId], darkPercentage);
-    d_dark_b[threadId] = darkenColor(d_b[threadId], darkPercentage);
+        // Dark
+        d_dark_r[threadId] = darkenColor(d_r[threadId], darkPercentage);
+        d_dark_g[threadId] = darkenColor(d_g[threadId], darkPercentage);
+        d_dark_b[threadId] = darkenColor(d_b[threadId], darkPercentage);
 
-    // Grayscale
-    d_grayscale[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) / 3;
-    // }
-
-    // __syncthreads();
+        // Grayscale
+        d_grayscale[threadId] = (d_r[threadId] + d_g[threadId] + d_b[threadId]) / 3;
+    }
 }
 
 __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercentage) {
     cout << "Running kernel...\n";
 
     const int blockZSize = 4;
-    const int threadsPerBlock = 148;
-    const int gridCols = min(ci->cols / (threadsPerBlock * 4), 1);
+    const int threadsPerBlock = 32;
 
-    printf("Grid cols: %d\n", gridCols);
-
-    dim3 grid(ci->rows, gridCols, 1);
+    dim3 grid(ci->cols, ci->rows, 1);
     dim3 block(1, threadsPerBlock, blockZSize);
 
     // Kernel code
@@ -125,33 +120,17 @@ __host__ int main(int argc, char **argv) {
 
         cudaDeviceSynchronize();
 
-        cout << "Hello #1\n";
-
         // Now that our data operations are finished, commence with mapping to output files
         for (int i = 0; i < cudaImages.size(); ++i) {
-            cout << "Hello #2\n";
             copyFromDeviceToHost(cudaImages[i]);
 
-            // int size = cudaImages[i]->rows * cudaImages[i]->cols;
-            // for (int j = 0; j < size; ++j) {
-            //     printf("R: %d\n", ci->h_r[j]);
-            //     printf("G: %d\n", ci->h_g[j]);
-            //     printf("B: %d\n", ci->h_b[j]);
-            // }
-
-            cout << "Hello #3\n";
             string filename = filepaths[i].substr(filepaths[i].find_last_of("/\\") + 1);
-            cout << "Hello #3\n";
             mapBrightImage(cudaImages[i], "./data/output/bright/bright_" + filename);
-            cout << "Hello #3\n";
             mapDarkImage(cudaImages[i], "./data/output/dark/dark_" + filename);
-            cout << "Hello #3\n";
             mapGrayscaleImage(cudaImages[i], "./data/output/grayscale/grayscale_" + filename);
 
-            cout << "Hello #4\n";
             destroyCudaImage(cudaImages[i]);
         }
-        cout << "Hello #5\n";
         cleanUpDevice();
 
     } catch (Exception &e) {

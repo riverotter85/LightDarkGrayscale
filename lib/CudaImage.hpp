@@ -166,10 +166,8 @@ __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int ro
             imageMat.at<Vec3b>(Point(col, row)) = color;
         }
     }
-    cout << "Out of loop\n";
 
     imwrite(outputFile, imageMat, compressionParams);
-    cout << "Out of loop\n";
 }
 
 // Main controls
