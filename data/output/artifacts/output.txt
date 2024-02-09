@@ -1,0 +1,18 @@
+
+Setting bright percentage: 45%
+Setting dark percentage: 60%
+Processing file: ./data/otter-1.png
+Running kernel...
+Done.
+Processing file: ./data/cat.png
+Running kernel...
+Done.
+Processing file: ./data/otter-2.png
+Running kernel...
+Done.
+Processing file: ./data/otter-3.png
+Running kernel...
+Done.
+Processing file: ./data/duck.png
+Running kernel...
+Done.
