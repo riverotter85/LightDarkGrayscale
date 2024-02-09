@@ -1,0 +1,13 @@
+LightDarkGrayscale requires the latest version of CUDA_Toolkit that's compatible with your GPU. Additionally, you will need to have OpenCV installed.
+
+There are two primary ways you can install these: either through a baseline Linux distro or Visual Studio for Windows. My personal recommendation is to go with Linux, as the setup procedure is far more streamlined for a developer environment.
+
+Install CUDA by following the link: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+
+Install OpenCV using one of the following two methods:
+- Install ```libopencv-dev``` using your system's package manager (Linux only)
+- Follow the instructions on OpenCV's website
+    - Windows: https://docs.opencv.org/4.x/d3/d52/tutorial_windows_install.html
+    - Linux: https://docs.opencv.org/4.x/d7/d9f/tutorial_linux_install.html
+
+NOTE: You MUST use a Linux installation that can interact with your computer's GPU. This means virtualized environments like VmWare and VirtualBox will NOT work for LightDarkGrayscale T_T
