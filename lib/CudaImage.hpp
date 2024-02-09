@@ -151,11 +151,13 @@ __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
 }
 
 __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int rows, int cols, string outputFile) {
+    // Create Mat of type unsigned char with 3 channels
     Mat imageMat(rows, cols, CV_8UC3);
     vector<int> compressionParams;
     compressionParams.push_back(IMWRITE_PNG_COMPRESSION);
     compressionParams.push_back(9);
 
+    // Copy the pixel values to map out the new image
     for (int row = 0; row < rows; ++row) {
         for (int col = 0; col < cols; ++col) {
             int index = row * cols + col;
@@ -173,6 +175,7 @@ __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int ro
 // Main controls
 
 __host__ CudaImage *createCudaImage(string inputImage) {
+    // Allocate host pixel values
     auto[rows, cols, h_r, h_g, h_b] = readImageFromFile(inputImage);
 
     uchar *h_bright_r  = (uchar *) malloc(sizeof(uchar) * rows * cols);
@@ -185,18 +188,7 @@ __host__ CudaImage *createCudaImage(string inputImage) {
 
     uchar *h_grayscale = (uchar *) malloc(sizeof(uchar) * rows * cols);
 
-    for (int i = 0; i < rows * cols; ++i) {
-        h_bright_r[i] = numeric_limits<uchar>::quiet_NaN();
-        h_bright_g[i] = numeric_limits<uchar>::quiet_NaN();
-        h_bright_b[i] = numeric_limits<uchar>::quiet_NaN();
-
-        h_dark_r[i] = numeric_limits<uchar>::quiet_NaN();
-        h_dark_g[i] = numeric_limits<uchar>::quiet_NaN();
-        h_dark_b[i] = numeric_limits<uchar>::quiet_NaN();
-
-        h_grayscale[i] = numeric_limits<uchar>::quiet_NaN();
-    }
-
+    // Allocate device pixel values
     tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> deviceTuple = allocateDeviceMemory(rows, cols);
     uchar *d_r         = get<0>(deviceTuple);
     uchar *d_g         = get<1>(deviceTuple);
