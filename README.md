@@ -16,7 +16,7 @@ LightDarkGrayscale requires the latest version of CUDA_Toolkit that's compatible
 
 There are two primary ways you can install these: either through a baseline Linux distro or Visual Studio for Windows. My personal recommendation is to go with Linux, as the setup procedure is far more streamlined for a developer environment.
 
-Install CUDA by following this link: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+Install CUDA by following the link: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 
 Install OpenCV using one of the following two methods:
 - Install ```libopencv-dev``` using your system's package manager (Linux only)
@@ -28,7 +28,7 @@ NOTE: You MUST use a Linux installation that can interact with your computer's G
 
 ## How To Run
 
-Once LightDarkGrayscale is built, simply run the executable in the LightDarkGrayscale folder, using the ```./bin/LightDarkGrayscale.exe``` command. You can also execute the run.sh file, using ```./run.sh```. This will run the program without any further interaction required from the user, and the output will be logged into output.txt.
+Once LightDarkGrayscale is built, simply run the executable in the ```LightDarkGrayscale``` folder, using the ```./bin/LightDarkGrayscale.exe``` command. You can also execute the run.sh file, using ```./run.sh```. This will run the program without any further interaction required from the user, and the output will be logged into ```output.txt```.
 
 Once finished, you will be able to see the brightened, darkened, and grayscaled files by checking the contents of ```data/output/```. The files themselves will be separated into that of "bright", "dark", and "grayscale", respectively.
 
