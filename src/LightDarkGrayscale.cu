@@ -1,3 +1,15 @@
+// File: LightDarkGrayscale.cu
+// Author: Logan Davis
+// Created: 1/24/2024
+// Last Modified: 2/09/2024
+//
+// NOTE: This project was originally cloned from the template "CUDAatScaleForTheEnterpriseCourseProjectTemplate", which was provided by Chancellor Pascale.
+//       The original code can be found at the link: https://github.com/PascaleCourseraCourses/CUDAatScaleForTheEnterpriseCourseProjectTemplate
+//
+// *** LightDarkGrayscale ***
+//
+// A simple CUDA program that reads in an image file, producing a brightened, darkened, and grayscale file as output.
+
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -13,6 +25,11 @@
 
 using namespace std;
 
+// Device function to calculate brightened color pixel
+// Arguments:
+// - color (uchar): Original pixel color
+// - percentage (int): Percentage by which the pixel is brightened
+// Returns: uchar
 __device__ uchar brightenColor(uchar color, int percentage) {
     float modifier = 1 + percentage * 0.01;
     uchar temp = color;
@@ -23,11 +40,32 @@ __device__ uchar brightenColor(uchar color, int percentage) {
     return newColor;
 }
 
+// Device function to calculate darkened color pixel
+// Arguments:
+// - color (uchar): Original pixel color
+// - percentage (int): Percentage by which the pixel is darkened
+// Returns: uchar
 __device__ uchar darkenColor(uchar color, int percentage) {
     float modifier = 1 - percentage * 0.01;
     return color * modifier;
 }
 
+// Kernel function to calculate and set the filtered pixels for brightened, darkened, and grayscaled images
+// Arguments:
+// - d_r                (uchar*): Device array for color r (red) pixels
+// - d_g                (uchar*): Device array for color g (green) pixels
+// - d_b                (uchar*): Device array for color b (blue) pixels
+// - d_bright_r         (uchar*): Device array for brightened r (red) pixels
+// - d_bright_g         (uchar*): Device array for brightened g (green) pixels
+// - d_bright_b         (uchar*): Device array for brightened b (blue) pixels
+// - d_dark_r           (uchar*): Device array for darkened r (red) pixels
+// - d_dark_g           (uchar*): Device array for darkened g (green) pixels
+// - d_dark_b           (uchar*): Device array for darkened b (blue) pixels
+// - d_grayscale        (uchar*): Device array for grayscaled pixels
+// - brightPercentage   (int): Percentage to brighten the image
+// - darkPercentage     (int): Percentage to darken the image
+// - size               (int): Size of arrays
+// Returns: None
 __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright_r, uchar *d_bright_g, uchar *d_bright_b,
                                         uchar *d_dark_r, uchar *d_dark_g, uchar *d_dark_b, uchar *d_grayscale, int brightPercentage,
                                         int darkPercentage, int size) {
@@ -53,6 +91,12 @@ __global__ void applyLightDarkGrayscale(uchar *d_r, uchar *d_g, uchar *d_b, ucha
     }
 }
 
+// Sets up and executes the global kernel method
+// Arguments:
+// - ci                 (CudaImage*): CudaImage that will be modified in the kernel
+// - brightPercentage   (int): Percentage to brighten the image
+// - darkPercentage     (int): Percentage to darken the image
+// Returns: None
 __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercentage) {
     cout << "Running kernel...\n";
 
@@ -76,6 +120,11 @@ __host__ void executeKernel(CudaImage *ci, int brightPercentage, int darkPercent
     cout << "Done.\n";
 }
 
+// Parses the command line arguments accordingly and returns the appropriate values
+// Arguments:
+// - argc (int): Number of arguments
+// - argv (char**): Array of char* (string), listing each argument
+// Returns: tuple<int, int>
 __host__ tuple<int, int> parseCliArguments(int argc, char **argv) {
     int brightPercentage = -1;
     int darkPercentage = -1;
@@ -104,6 +153,10 @@ __host__ tuple<int, int> parseCliArguments(int argc, char **argv) {
     return {brightPercentage, darkPercentage};
 }
 
+// Prompts the user for a percentage between 0 and 100, returning that value
+// Arguments:
+// - prompt (string): Text prompt that's shown to the user as they're prompted
+// Returns: int
 __host__ int promptInputPercentage(string prompt) {
     int response;
     do {
@@ -114,6 +167,11 @@ __host__ int promptInputPercentage(string prompt) {
     return response;
 }
 
+// Main function
+// Arguments:
+// - argc (int): Number of arguments
+// - argv (char**): Array of char* (string), listing each argument
+// Returns: int
 __host__ int main(int argc, char **argv) {
     vector<string> filepaths;
     vector<CudaImage *> cudaImages;

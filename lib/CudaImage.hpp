@@ -1,3 +1,8 @@
+// File: CudaImage.hpp
+// Author: Logan Davis
+// Created: 1/24/2024
+// Last Modified: 2/09/2024
+
 #ifndef CUDA_IMAGE
 #define CUDA_IMAGE
 
@@ -10,6 +15,22 @@
 using namespace cv;
 using namespace std;
 
+// Takes the contents of an image and creates a brightened, darkened, and grayscale variant
+// Example:
+//      CudaImage *ci = createCudaImage("path/to/image.png");
+//      copyFromHostToDevice(ci);
+//
+//      executeKernel(ci);
+//
+//      cudaDeviceSynchronize();
+//
+//      copyFromDeviceToHost(ci);
+//      mapBrightImage(ci, "path/to/bright_image.png");
+//      mapDarkImage(ci, "path/to/dark_image.png");
+//      mapGrayscaleImage(ci, "path/to/grayscale_image.png");
+//
+//      destroyCudaImage(ci);
+//      cleanUpDevice();
 struct CudaImage {
     // Host pixels
     uchar *h_r;
@@ -53,6 +74,10 @@ struct CudaImage {
 
 // Background functions
 
+// Reads image from file and retrieves number of rows, number of columns, and pixel values
+// Arguments:
+// - inputFile (string): Path to file that is read in
+// Returns: tuple<int, int, uchar*, uchar*, uchar*>
 __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inputFile) {
     Mat image = imread(inputFile, IMREAD_COLOR);
 
@@ -79,6 +104,10 @@ __host__ tuple<int, int, uchar *, uchar *, uchar *> readImageFromFile(string inp
     return {rows, cols, h_r, h_g, h_b};
 }
 
+// Allocates unsigned character array on the device side
+// Arguments:
+// - size (size_t): Size of data to be allocated
+// Returns: uchar*
 __host__ uchar *allocateDeviceVector(size_t size) {
     uchar *vector = NULL;
     cudaError_t err = cudaMalloc(&vector, size);
@@ -90,6 +119,10 @@ __host__ uchar *allocateDeviceVector(size_t size) {
     return vector;
 }
 
+// Deallocates unsigned character array on the device side
+// Arguments:
+// - vector (uchar*): Unsigned character array to be freed
+// Returns: None
 __host__ void deallocateDeviceVector(uchar *vector) {
     cudaError_t err = cudaFree(vector);
     if (err != cudaSuccess) {
@@ -98,6 +131,11 @@ __host__ void deallocateDeviceVector(uchar *vector) {
     }
 }
 
+// Allocates all necessary memory on the device side and returns the pointer values
+// Arguments:
+// - rows (int): Number of rows
+// - cols (int): Number of columns
+// Returns: tuple<uchar*, uchar*, uchar*, uchar*, uchar*, uchar*, uchar*, uchar*, uchar*, uchar*>
 __host__ tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *> allocateDeviceMemory(int rows, int cols) {
     size_t size = rows * cols * sizeof(uchar);
 
@@ -118,7 +156,21 @@ __host__ tuple<uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uchar *, uc
     return {d_r, d_g, d_b, d_bright_r, d_bright_g, d_bright_b, d_dark_r, d_dark_g, d_dark_b, d_grayscale};
 }
 
-__host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright_r, uchar *d_bright_g, uchar *d_bright_b, uchar *d_dark_r, uchar *d_dark_g, uchar *d_dark_b, uchar *d_grayscale) {
+// Deallocates memory on the device side
+// Arguments:
+// - d_r         (uchar*): Device array of r (red) values
+// - d_g         (uchar*): Device array of g (green) values
+// - d_b         (uchar*): Device array of b (blue) values
+// - d_bright_r  (uchar*): Device array of brightened r (red) values
+// - d_bright_g  (uchar*): Device array of brightened g (green) values
+// - d_bright_b  (uchar*): Device array of brightened b (blue) values
+// - d_dark_r    (uchar*): Device array of darkened r (red) values
+// - d_dark_g    (uchar*): Device array of darkened g (green) values
+// - d_dark_b    (uchar*): Device array of darkened b (blue) values
+// - d_grayscale (uchar*): Device array of grayscale pixel values
+// Returns: None
+__host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_bright_r, uchar *d_bright_g, uchar *d_bright_b,
+                                                    uchar *d_dark_r, uchar *d_dark_g, uchar *d_dark_b, uchar *d_grayscale) {
     deallocateDeviceVector(d_r);
     deallocateDeviceVector(d_g);
     deallocateDeviceVector(d_b);
@@ -134,6 +186,12 @@ __host__ void deallocateMemory(uchar *d_r, uchar *d_g, uchar *d_b, uchar *d_brig
     deallocateDeviceVector(d_grayscale);
 }
 
+// Copies data from host to the device using CUDA
+// Arguments:
+// - src (uchar): Source data being copied
+// - dst (uchar): Destination that we're copying to
+// - size (size_t): Size of data
+// Returns: None
 __host__ void copyHostDevice(uchar *src, uchar *dst, size_t size) {
     cudaError_t err = cudaMemcpy(dst, src, size, cudaMemcpyHostToDevice);
     if (err != cudaSuccess) {
@@ -142,6 +200,12 @@ __host__ void copyHostDevice(uchar *src, uchar *dst, size_t size) {
     }
 }
 
+// Copies data from device to the host using CUDA
+// Arguments:
+// - src (uchar): Source data being copied
+// - dst (uchar): Destination that we're copying to
+// - size (size_t): Size of data
+// Returns: None
 __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
     cudaError_t err = cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) {
@@ -150,6 +214,15 @@ __host__ void copyDeviceHost(uchar *src, uchar *dst, size_t size) {
     }
 }
 
+// Maps image using the provided pixel values, writing them into a new image file
+// Arguments:
+// - filter_r   (uchar*): Array of filtered r (red) pixel values
+// - filter_g   (uchar*): Array of filtered g (green) pixel values
+// - filter_b   (uchar*): Array of filtered b (blue) pixel values
+// - rows       (int): Number of image rows
+// - cols       (int): Number of image columns
+// - outputFile (string): Path to new file that is created
+// Returns: None
 __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int rows, int cols, string outputFile) {
     // Create Mat of type unsigned char with 3 channels
     Mat imageMat(rows, cols, CV_8UC3);
@@ -174,6 +247,10 @@ __host__ void mapImage(uchar *filter_r, uchar *filter_g, uchar *filter_b, int ro
 
 // Main controls
 
+// Creates new CudaImage from image filepath
+// Arguments:
+// - inputImage (string): Path to image file that is read in
+// Returns: CudaImage*
 __host__ CudaImage *createCudaImage(string inputImage) {
     // Allocate host pixel values
     auto[rows, cols, h_r, h_g, h_b] = readImageFromFile(inputImage);
@@ -238,12 +315,19 @@ __host__ CudaImage *createCudaImage(string inputImage) {
     return cudaImage;
 }
 
+// Destroys CudaImage
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage to be destroyed
+// Returns: None
 __host__ void destroyCudaImage(CudaImage *cudaImage) {
     deallocateMemory(cudaImage->d_r, cudaImage->d_g, cudaImage->d_b,
                     cudaImage->d_bright_r, cudaImage->d_bright_g, cudaImage->d_bright_b,
                     cudaImage->d_dark_r, cudaImage->d_dark_g, cudaImage->d_dark_b, cudaImage->d_grayscale);
 }
 
+// Cleans up device data using CUDA methods
+// Arguments: None
+// Returns: None
 __host__ void cleanUpDevice() {
     cudaError_t err = cudaDeviceReset();
     if (err != cudaSuccess) {
@@ -252,6 +336,10 @@ __host__ void cleanUpDevice() {
     }
 }
 
+// Copies from host to device using delegated methods
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage that is being copied
+// Returns: None
 __host__ void copyFromHostToDevice(CudaImage *cudaImage) {
     size_t size = cudaImage->rows * cudaImage->cols * sizeof(uchar);
 
@@ -270,6 +358,10 @@ __host__ void copyFromHostToDevice(CudaImage *cudaImage) {
     copyHostDevice(cudaImage->h_grayscale, cudaImage->d_grayscale, size);
 }
 
+// Copies from device to host using delegated methods
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage that is being copied
+// Returns: None
 __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
     size_t size = cudaImage->rows * cudaImage->cols * sizeof(uchar);
 
@@ -288,14 +380,29 @@ __host__ void copyFromDeviceToHost(CudaImage *cudaImage) {
     copyDeviceHost(cudaImage->d_grayscale, cudaImage->h_grayscale, size);
 }
 
+// Maps brightened image using delegated mapImage method
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage that is being mapped
+// - outputFile (string): Path to file that is being created
+// Returns: None
 __host__ void mapBrightImage(CudaImage *cudaImage, string outputFile) {
     mapImage(cudaImage->h_bright_r, cudaImage->h_bright_g, cudaImage->h_bright_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
+// Maps darkened image using delegated mapImage method
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage that is being mapped
+// - outputFile (string): Path to file that is being created
+// Returns: None
 __host__ void mapDarkImage(CudaImage *cudaImage, string outputFile) {
     mapImage(cudaImage->h_dark_r, cudaImage->h_dark_g, cudaImage->h_dark_b, cudaImage->rows, cudaImage->cols, outputFile);
 }
 
+// Maps grayscaled image using delegated mapImage method
+// Arguments:
+// - cudaImage (CudaImage*): CudaImage that is being mapped
+// - outputFile (string): Path to file that is being created
+// Returns: None
 __host__ void mapGrayscaleImage(CudaImage *cudaImage, string outputFile) {
     mapImage(cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->h_grayscale, cudaImage->rows, cudaImage->cols, outputFile);
 }
